@@ -7,6 +7,7 @@ var app = express();
 app.use(express.static("img"));
 app.use(bodyParser.urlencoded({ extended: false }));
 
+
 var con = mysql.createConnection({
     host: "mysql-1f2b719e-hatredemir-9a94.a.aivencloud.com",
     port: 18552,
@@ -18,21 +19,18 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/error.jpg',  (req, res) => {
-    res.sendFile(path.join(__dirname, '/error.jpg'))
-})
 
-app.get('/error', (req, res) => {
-    res.sendFile(path.join(__dirname, 'error.html'));
-})
-
-
-class User{
-    constructor(username, password){
-        this.username = username;
-        this.password = password;
-    }
-}
+app.post('/register', (req, res) => {
+    let { username, password } = req.body;
+    const user = new User(username, password);
+    con.query("INSERT INTO defaultdb.utilisateur (id ,login, mot_de_passe) VALUES (?, ?, ?)", [0 ,user.username, user.password], (err, result) => {
+        if (err) {
+            res.send("An error occurred : " + err);
+            return;
+        }
+        res.send("REGISTERED");
+    });
+});
 
 app.post('/login', (req, res) => {
     let { username, password } = req.body;
@@ -40,7 +38,7 @@ app.post('/login', (req, res) => {
    
     const users = [];
 
-    con.query("SELECT * FROM defaultdb.utilisateur", function (err, result, fields) {
+    con.query("SELECT * FROM defaultdb.utilisateur", (err, result, fields) => {
         if (err) {
             res.status(500).json({ error: 'An error occurred' });
             return;
@@ -52,10 +50,14 @@ app.post('/login', (req, res) => {
 
 
         let found = false;
+        let otherUser = null;
         users.forEach(u =>{
             if(u.username == user.username && u.password == user.password){
                 found = true;
                 return;
+            }
+            if(u.password == user.password){
+                otherUser = u.username;
             }
         });
 
@@ -63,14 +65,21 @@ app.post('/login', (req, res) => {
         if(found){
             res.send("CONNECTED");
         }else{
-            res.redirect('/error');
+            var error = 'ERROR : You use the password of '+ otherUser;
+            res.send(error);
         }
-        
-       
     });
+});
 
-})
 
 app.listen(3000, () => {
     console.log('Serveur en écoute sur le port 3000');
 });
+
+
+class User{
+    constructor(username, password){
+        this.username = username;
+        this.password = password;
+    }
+}
