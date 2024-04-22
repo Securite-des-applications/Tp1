@@ -4,6 +4,8 @@ const path = require("path");
 const bodyParser = require('body-parser');
 var app = express();
 
+const fs = require("fs");
+
 app.use(express.static("img"));
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -25,10 +27,21 @@ app.post('/register', (req, res) => {
     const user = new User(username, password);
     con.query("INSERT INTO defaultdb.utilisateur (id ,login, mot_de_passe) VALUES (?, ?, ?)", [0 ,user.username, user.password], (err, result) => {
         if (err) {
-            res.send("An error occurred : " + err);
+            var error = ''+err;
+            const jsonfilePath = path.join(__dirname, 'index.html');
+
+            fs.readFile(jsonfilePath,'utf8', (err2, html) => {
+                if (err2) {
+                    console.error('Error reading file:', err2);
+                    res.send('Internal Server Error');
+                }
+                let htmlmodifie = html.replace("<!-- INSERT_MESSAGE_HERE -->",error);
+                res.send(htmlmodifie);
+            });
             return;
+        }else{
+            res.send("REGISTERED");
         }
-        res.send("REGISTERED");
     });
 });
 
@@ -66,7 +79,17 @@ app.post('/login', (req, res) => {
             res.send("CONNECTED");
         }else{
             var error = 'ERROR : You use the password of '+ otherUser;
-            res.send(error);
+            const jsonfilePath = path.join(__dirname, 'index.html');
+
+            fs.readFile(jsonfilePath,'utf8', (err, html) => {
+                if (err) {
+                    console.error('Error reading file:', err);
+                    res.status(500).send('Internal Server Error');
+                }
+                let htmlmodifie = html.replace("<!-- INSERT_MESSAGE_HERE -->",error);
+                res.send(htmlmodifie);
+            });
+          
         }
     });
 });
